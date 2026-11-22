@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ChessPulse Analyzer</title>
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Chessboard.js CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-dark: #16a34a;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --brilliant: #06b6d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.3px;
+    }
+
+    .lang-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-btn {
+      border: none;
+      background: var(--card-2);
+      color: var(--text);
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .lang-btn.active {
+      background: var(--accent);
+      color: #052e16;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input, textarea {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--card-2);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+
+    textarea {
+      min-height: 64px;
+      resize: vertical;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--card-2);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #052e16;
+    }
+
+    .btn-warn {
+      background: var(--warn);
+      color: #1c1917;
+    }
+
+    .board-wrap {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #board {
+      width: 100%;
+      height: 100%;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--card-2);
+    }
+
+    .badge.brilliant { background: var(--brilliant); color: #042f2e; }
+    .badge.good { background: var(--accent); color: #052e16; }
+    .badge.mistake { background: var(--warn); color: #1c1917; }
+    .badge.blunder { background: var(--danger); color: #fff; }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+
+    .stat-box {
+      background: var(--bg);
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .stat-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .ad-box {
+      background: var(--bg);
+      border: 1px dashed var(--card-2);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ad-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Bar + Language Switcher -->
+    <div class="topbar">
+      <div class="brand" id="appTitle">ChessPulse Analyzer</div>
+      <div class="lang-group">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="tl">TL</button>
+        <button class="lang-btn" data-lang="es">ES</button>
+        <button class="lang-btn" data-lang="id">ID</button>
+      </div>
+    </div>
+
+    <!-- PGN / Sample Input -->
+    <div class="card">
+      <label id="pgnLabel" style="font-size:0.82rem;color:var(--muted);">PGN Game Input</label>
+      <textarea id="pgnInput">1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Nxd5 6. Nxf7 Kxf7 7. Qf3+ Ke6 8. Nc3 Nb4</textarea>
+      <div class="row">
+        <button class="btn-primary" id="analyzeBtn" style="flex:1;">Analyze Game</button>
+        <button id="sampleBtn">Sample</button>
+      </div>
+    </div>
+
+    <!-- Board + Move Status + Navigation -->
+    <div class="card">
+      <div class="board-wrap">
+        <div id="board"></div>
+      </div>
+
+      <div class="status-bar">
+        <span id="moveInfo">Move: 0 / 0</span>
+        <span class="badge" id="moveBadge">Start</span>
+      </div>
+
+      <div class="nav-grid">
+        <button id="firstBtn">|&lt;</button>
+        <button id="prevBtn" class="btn-primary">Prev</button>
+        <button id="nextBtn" class="btn-primary">Next</button>
+        <button id="lastBtn">&gt;|</button>
+      </div>
+    </div>
+
+    <!-- Summary Preview -->
+    <div class="card">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label" id="lblCredits">Free Credits</div>
+          <div class="stat-val" id="creditsVal">2</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label" id="lblAccuracy">Est. Accuracy</div>
+          <div class="stat-val" id="accVal">--%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label" id="lblRating">Est. Rating</div>
+          <div class="stat-val" id="ratingVal">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HilltopAds Slot -->
+    <div class="card">
+      <div class="ad-box" id="adContainer">
+        <div style="font-weight:700;font-size:0.9rem;" id="adTitle">HilltopAds Reward / Video Slot</div>
+        <div class="ad-note" id="adDesc">
+          Palitan ang placeholder block sa ibaba ng iyong HilltopAds script / direct video link.
+        </div>
+        <!-- HILLTOPADS SCRIPT / BANNER SLOT START -->
+        <div id="hilltopads-slot"></div>
+        <!-- HILLTOPADS SCRIPT / BANNER SLOT END -->
+        <button class="btn-warn" id="watchAdBtn">Watch Ad (+2 Credits)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery (required by chessboard.js) + chess.js + chessboard.js -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+  <script>
+    const I18N = {
+      en: {
+        title: "ChessPulse Analyzer",
+        pgnLabel: "PGN Game Input",
+        analyzeBtn: "Analyze Game",
+        sampleBtn: "Sample",
+        prevBtn: "Prev",
+        nextBtn: "Next",
+        lblCredits: "Free Credits",
+        lblAccuracy: "Est. Accuracy",
+        lblRating: "Est. Rating",
+        adTitle: "HilltopAds Reward / Video Slot",
+        adDesc: "Watch an ad to unlock more game analyses for free.",
+        watchAdBtn: "Watch Ad (+2 Credits)",
+        noCredits: "Out of free credits! Watch an ad below to continue."
+      },
+      tl: {
+        title: "ChessPulse Analyzer",
+        pgnLabel: "Ilagay ang PGN ng Laro",
+        analyzeBtn: "I-analyze ang Laro",
+        sampleBtn: "Halimbawa",
+        prevBtn: "Balik",
+        nextBtn: "Sunod",
+        lblCredits: "Libreng Credits",
+        lblAccuracy: "Tantiyang Accuracy",
+        lblRating: "Tantiyang Rating",
+        adTitle: "HilltopAds Video / Ad Slot",
+        adDesc: "Manood ng ad para makapag-analyze pa nang libre.",
+        watchAdBtn: "Manood ng Ad (+2 Credits)",
+        noCredits: "Ubos na ang libreng credits! Manood muna ng ad sa ibaba."
+      },
+      es: {
+        title: "ChessPulse Analyzer",
+        pgnLabel: "Entrada PGN de la Partida",
+        analyzeBtn: "Analizar Partida",
+        sampleBtn: "Ejemplo",
+        prevBtn: "Ant.",
+        nextBtn: "Sig.",
+        lblCredits: "Créditos Gratis",
+        lblAccuracy: "Precisión Est.",
+        lblRating: "Rating Est.",
+        adTitle: "Espacio de Video / Anuncio HilltopAds",
+        adDesc: "Mira un anuncio para desbloquear más análisis gratis.",
+        watchAdBtn: "Ver Anuncio (+2 Créditos)",
+        noCredits: "¡Sin créditos gratis! Mira un anuncio abajo para continuar."
+      },
+      id: {
+        title: "ChessPulse Analyzer",
+        pgnLabel: "Input PGN Permainan",
+        analyzeBtn: "Analisis Game",
+        sampleBtn: "Contoh",
+        prevBtn: "Sblm",
+        nextBtn: "Brkt",
+        lblCredits: "Kredit Gratis",
+        lblAccuracy: "Akurasi Perkiraan",
+        lblRating: "Rating Perkiraan",
+        adTitle: "Slot Iklan / Video HilltopAds",
+        adDesc: "Tonton iklan untuk membuka analisis game gratis lainnya.",
+        watchAdBtn: "Tonton Iklan (+2 Kredit)",
+        noCredits: "Kredit gratis habis! Tonton iklan di bawah untuk lanjut."
+      }
+    };
+
+    const SAMPLE_PGN = "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Nxd5 6. Nxf7 Kxf7 7. Qf3+ Ke6 8. Nc3 Nb4";
+
+    let currentLang = "en";
+    let credits = 2;
+    let positions = ["start"];
+    let moveBadges = ["Start"];
+    let currentIndex = 0;
+
+    const board = Chessboard("board", {
+      position: "start",
+      pieceTheme: "https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png"
+    });
+
+    function applyLanguage(lang) {
+      currentLang = lang;
+      const t = I18N[lang];
+      document.getElementById("appTitle").textContent = t.title;
+      document.getElementById("pgnLabel").textContent = t.pgnLabel;
+      document.getElementById("analyzeBtn").textContent = t.analyzeBtn;
+      document.getElementById("sampleBtn").textContent = t.sampleBtn;
+      document.getElementById("prevBtn").textContent = t.prevBtn;
+      document.getElementById("nextBtn").textContent = t.nextBtn;
+      document.getElementById("lblCredits").textContent = t.lblCredits;
+      document.getElementById("lblAccuracy").textContent = t.lblAccuracy;
+      document.getElementById("lblRating").textContent = t.lblRating;
+      document.getElementById("adTitle").textContent = t.adTitle;
+      document.getElementById("adDesc").textContent = t.adDesc;
+      document.getElementById("watchAdBtn").textContent = t.watchAdBtn;
+
+      document.querySelectorAll(".lang-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.lang === lang);
+      });
+    }
+
+    function updateBoardView() {
+      board.position(positions[currentIndex], false);
+      const totalMoves = positions.length - 1;
+      document.getElementById("moveInfo").textContent = `Move: ${currentIndex} / ${totalMoves}`;
+
+      const badgeLabel = moveBadges[currentIndex] || "Move";
+      const badgeEl = document.getElementById("moveBadge");
+      badgeEl.textContent = badgeLabel;
+      badgeEl.className = "badge";
+
+      if (badgeLabel === "Brilliant !!") badgeEl.classList.add("brilliant");
+      else if (badgeLabel === "Great !" || badgeLabel === "Best") badgeEl.classList.add("good");
+      else if (badgeLabel === "Mistake ?") badgeEl.classList.add("mistake");
+      else if (badgeLabel === "Blunder ??") badgeEl.classList.add("blunder");
+    }
+
+    function analyzePgn() {
+      if (credits <= 0) {
+        alert(I18N[currentLang].noCredits);
+        return;
+      }
+
+      const pgnText = document.getElementById("pgnInput").value.trim();
+      const game = new Chess();
+      const loaded = game.load_pgn(pgnText, { sloppy: true });
+
+      if (!loaded) {
+        alert("Invalid PGN format. Please check your moves.");
+        return;
+      }
+
+      credits -= 1;
+      document.getElementById("creditsVal").textContent = credits;
+
+      const history = game.history({ verbose: true });
+      const replay = new Chess();
+      positions = [replay.fen()];
+      moveBadges = ["Start"];
+
+      const sampleTags = ["Best", "Great !", "Brilliant !!", "Mistake ?", "Blunder ??"];
+
+      history.forEach((mv, idx) => {
+        replay.move(mv);
+        positions.push(replay.fen());
+        // Placeholder classification until Stockfish WebWorker evaluation is wired in
+        const tag = sampleTags[(idx * 3 + mv.san.length) % sampleTags.length];
+        moveBadges.push(tag);
+      });
+
+      // Placeholder summary numbers until Stockfish centipawn evaluation is added
+      const estAcc = Math.min(98, Math.max(52, 74 + (history.length % 17)));
+      const estRating = 900 + estAcc * 12;
+
+      document.getElementById("accVal").textContent = `${estAcc}%`;
+      document.getElementById("ratingVal").textContent = `${estRating}`;
+
+      currentIndex = 0;
+      updateBoardView();
+    }
+
+    document.querySelectorAll(".lang-btn").forEach((btn) => {
+      btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+    });
+
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      document.getElementById("pgnInput").value = SAMPLE_PGN;
+    });
+
+    document.getElementById("analyzeBtn").addEventListener("click", analyzePgn);
+
+    document.getElementById("firstBtn").addEventListener("click", () => {
+      currentIndex = 0;
+      updateBoardView();
+    });
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex -= 1;
+        updateBoardView();
+      }
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      if (currentIndex < positions.length - 1) {
+        currentIndex += 1;
+        updateBoardView();
+      }
+    });
+
+    document.getElementById("lastBtn").addEventListener("click", () => {
+      currentIndex = positions.length - 1;
+      updateBoardView();
+    });
+
+    // Replace this simulated ad trigger with your HilltopAds direct link / video ad flow
+    document.getElementById("watchAdBtn").addEventListener("click", () => {
+      credits += 2;
+      document.getElementById("creditsVal").textContent = credits;
+      alert("+2 Credits added!");
+    });
+
+    $(window).on("resize", () => board.resize());
+    applyLanguage("en");
+    analyzePgn();
+  </script>
+</body>
+</html>
